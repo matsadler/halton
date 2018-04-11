@@ -3,4 +3,5 @@ name = "halton"
 version = "0.1.0"
 authors = ["Mat Sadler <mat@sourcetagsandcodes.com>"]
 
-[dependencies]
+[dev-dependencies]
+approx = "0.1"
