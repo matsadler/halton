@@ -1,9 +1,84 @@
+//! A module for generating Halton sequences, a deterministic low discrepancy
+//! sequence that appears to be random. The uniform distribution and
+//! repeatability makes the sequence ideal for choosing sample points or
+//! placing objects in 2D or 3D space.
+//!
+//! # Examples
+//!
+//! ```
+//! use halton::Sequence;
+//!
+//! let mut grid = [["."; 10]; 10];
+//! let alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").skip(1).take(26);
+//! let seq = Sequence::new(2).zip(Sequence::new(3)).zip(alpha);
+//! for ((x, y), c) in seq {
+//!     grid[(y * 10.0) as usize][(x * 10.0) as usize] = c;
+//! }
+//! for row in grid.iter() {
+//!     println!("{}", row.join(" "));
+//! }
+//! ```
+//!
+//! Outputs:
+//!
+//! ``` text
+//! . . R . . I . . . .
+//! . L . . . . U C . .
+//! X . . F . . . . . O
+//! . . . J . A . . . .
+//! . D . . . . M S . .
+//! P . . . V . . . G .
+//! . . B . . Y . . . .
+//! . T . . . . E . K .
+//! H . . . N . . . . W
+//! . . . Z . Q . . . .
+//! ```
+
 #[cfg(test)]
 #[macro_use]
 extern crate approx;
 
 const D: usize = 20;
 
+/// An iterator implementing the fast generation of Halton sequences.
+/// The method of generation is adapted from _Fast, portable, and reliable
+/// algorithm for the calculation of Halton numbers_ by Miroslav Kolar and
+/// Seamus O'Shea.
+///
+/// # Examples
+///
+/// With a `for` loop:
+///
+/// ``` no_run
+/// use halton::Sequence;
+///
+/// let seq = Sequence::new(2);
+///
+/// for x in seq {
+///     println!("{}", x);
+/// }
+/// ```
+///
+/// Collecting into a `Vec`:
+///
+/// ```
+/// use halton::Sequence;
+///
+/// let seq = Sequence::new(2);
+///
+/// assert_eq!(vec![0.5, 0.25, 0.75], seq.take(3).collect::<Vec<f64>>());
+/// ```
+///
+/// Skipping entries on initialisation:
+///
+/// ```
+/// use halton::Sequence;
+///
+/// // use base 17, skip the first 20 entries
+/// let mut seq = Sequence::skip(17, 20);
+///
+/// assert_eq!(Some(0.23875432525951557), seq.next());
+/// ```
 pub struct Sequence {
     b: u8,
     d: [u8; D + 1],
@@ -11,6 +86,18 @@ pub struct Sequence {
 }
 
 impl Sequence {
+    /// Constructs a new `Sequence` for `base`.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use halton::Sequence;
+    /// let mut seq = Sequence::new(2);
+    ///
+    /// assert_eq!(Some(0.5), seq.next());
+    /// ```
     pub fn new(base: u8) -> Self {
         Sequence {
             b: base,
@@ -19,6 +106,21 @@ impl Sequence {
         }
     }
 
+    /// Constructs a new `Sequence` for `base`, skipping `n` elements.
+    ///
+    /// The method used to skip elements when constructing the `Sequence` is
+    /// considerably faster than advancing the iterator to that point.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use halton::Sequence;
+    /// let mut seq = Sequence::skip(2, 8);
+    ///
+    /// assert_eq!(Some(0.5625), seq.next());
+    /// ```
     pub fn skip(base: u8, n: usize) -> Self {
         let b = base;
         let mut n0 = n;
