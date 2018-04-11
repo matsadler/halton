@@ -12,11 +12,30 @@ pub struct Sequence {
 
 impl Sequence {
     pub fn new(base: u8) -> Self {
-        Sequence { 
+        Sequence {
             b: base,
             d: [0; D + 1],
             r: [0.0; D + 1],
         }
+    }
+
+    pub fn skip(base: u8, n: usize) -> Self {
+        let b = base;
+        let mut n0 = n;
+        let mut d = [0; D + 1];
+        let mut r = [0.0; D + 1];
+
+        let mut last = 0;
+        while n0 >= b as usize {
+            d[last] = n0 as u8 % b;
+            last += 1;
+            n0 /= b as usize;
+        }
+        d[last] = n0 as u8;
+        for i in (1..(D + 1)).rev() {
+            r[i - 1] = (d[i] as f64 + r[i]) / b as f64;
+        }
+        Sequence { b, d, r }
     }
 }
 
@@ -84,9 +103,28 @@ mod tests {
     }
 
     #[test]
+    fn skip_base_2() {
+        let mut seq = Sequence::skip(2, 8);
+        assert_relative_eq!(0.5625, seq.next().unwrap());
+    }
+
+    #[test]
+    fn skip_base_3() {
+        let mut seq = Sequence::skip(3, 8);
+        assert_relative_eq!(0.0370370370370370, seq.next().unwrap());
+    }
+
+    #[test]
     fn last() {
         let mut seq = Sequence::new(2);
         assert_relative_eq!(4.76837158203125e-07, seq.nth(1048575).unwrap());
+        assert_eq!(None, seq.next());
+    }
+
+    #[test]
+    fn skip_last() {
+        let mut seq = Sequence::skip(2, 1048575);
+        assert_relative_eq!(4.76837158203125e-07, seq.next().unwrap());
         assert_eq!(None, seq.next());
     }
 
