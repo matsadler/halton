@@ -128,14 +128,14 @@ impl Sequence {
         let mut r = [0.0; D + 1];
 
         let mut last = 0;
-        while n0 >= b as usize {
+        while n0 >= usize::from(b) {
             d[last] = n0 as u8 % b;
             last += 1;
-            n0 /= b as usize;
+            n0 /= usize::from(b);
         }
         d[last] = n0 as u8;
         for i in (1..(D + 1)).rev() {
-            r[i - 1] = (d[i] as f64 + r[i]) / b as f64;
+            r[i - 1] = (f64::from(d[i]) + r[i]) / f64::from(b);
         }
         Sequence { b, d, r }
     }
@@ -161,13 +161,13 @@ impl Iterator for Sequence {
                     break;
                 };
             }
-            self.r[l - 1] = (self.d[l] as f64 + self.r[l]) / self.b as f64;
+            self.r[l - 1] = (f64::from(self.d[l]) + self.r[l]) / f64::from(self.b);
             for i in (1..l).rev() {
-                self.r[i - 1] = self.r[i] / self.b as f64;
+                self.r[i - 1] = self.r[i] / f64::from(self.b);
             }
-            Some(self.r[0] / self.b as f64)
+            Some(self.r[0] / f64::from(self.b))
         } else {
-            Some((self.d[0] as f64 + self.r[0]) / self.b as f64)
+            Some((f64::from(self.d[0]) + self.r[0]) / f64::from(self.b))
         }
     }
 }
