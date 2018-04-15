@@ -2,6 +2,7 @@
 name = "halton"
 version = "0.1.0"
 authors = ["Mat Sadler <mat@sourcetagsandcodes.com>"]
+license = "MIT/Apache-2.0"
 
 [dev-dependencies]
 approx = "0.1"
