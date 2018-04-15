@@ -3,6 +3,10 @@ name = "halton"
 version = "0.1.0"
 authors = ["Mat Sadler <mat@sourcetagsandcodes.com>"]
 license = "MIT/Apache-2.0"
+repository = "https://github.com/matsadler/halton"
+homepage = "https://github.com/matsadler/halton"
+documentation = "https://docs.rs/halton"
+description = "A module for generating Halton sequences"
 
 [dev-dependencies]
 approx = "0.1"
