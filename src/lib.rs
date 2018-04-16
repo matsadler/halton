@@ -34,6 +34,12 @@
 //! . . . Z . Q . . . .
 //! ```
 
+#![no_std]
+
+#[cfg(test)]
+#[macro_use]
+extern crate std;
+
 #[cfg(test)]
 #[macro_use]
 extern crate approx;
@@ -232,6 +238,8 @@ mod tests {
 
     #[test]
     fn iter() {
+        use std::vec::Vec;
+
         let seq = Sequence::new(2);
         assert_eq!(vec![0.5, 0.25, 0.75], seq.take(3).collect::<Vec<f64>>());
     }
