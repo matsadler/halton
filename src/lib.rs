@@ -46,10 +46,56 @@ extern crate approx;
 
 const D: usize = 20;
 
+/// Returns the number at `index` of the Halton sequence for `base`. The number
+/// returned will be > 0 and < 1, assuming index > 1.
+///
+/// While [`Sequence`](struct.Sequence.html) will be faster for most cases,
+/// this function may be useful for calulating a single number from a Halton
+/// sequence, or creating a 'leaped' sequence.
+///
+/// # Index
+///
+/// Beware that indexing [`Sequence`](struct.Sequence.html) is effectively
+/// 0-based, whereas the `index` argument for [`number`](fn.number.html) is
+/// 1-based.
+///
+/// ```
+/// use halton::{number, Sequence};
+///
+/// assert_eq!(Sequence::new(2).nth(0).unwrap(), number(2, 1));
+/// ```
+///
+/// # Examples
+///
+/// 'leaped' Halton sequence:
+///
+/// ```
+/// let step = 409;
+/// let mut i = 1;
+/// while i < 10 * step {
+///     println!("{}", halton::number(17, i));
+///     i += step;
+/// }
+/// ```
+#[inline]
+pub fn number(base: u8, index: usize) -> f64 {
+    let mut index = index;
+    let mut result = 0.0;
+    let mut factor = 1.0 / f64::from(base);
+    while index > 0 {
+        result += factor * (index % usize::from(base)) as f64;
+        factor /= f64::from(base);
+        index /= usize::from(base);
+    }
+    result
+}
+
 /// An iterator implementing the fast generation of Halton sequences.
 /// The method of generation is adapted from _Fast, portable, and reliable
 /// algorithm for the calculation of Halton numbers_ by Miroslav Kolar and
 /// Seamus O'Shea.
+///
+/// The numbers returned from the iterator will be in the range > 0 and < 1.
 ///
 /// # Examples
 ///
@@ -180,10 +226,38 @@ impl Iterator for Sequence {
 
 #[cfg(test)]
 mod tests {
-    use super::Sequence;
+    use super::{number, Sequence};
 
     #[test]
-    fn base_2() {
+    fn number_base_2() {
+        assert_relative_eq!(0.0, number(2, 0));
+        assert_relative_eq!(0.5, number(2, 1));
+        assert_relative_eq!(0.25, number(2, 2));
+        assert_relative_eq!(0.75, number(2, 3));
+        assert_relative_eq!(0.125, number(2, 4));
+        assert_relative_eq!(0.625, number(2, 5));
+        assert_relative_eq!(0.375, number(2, 6));
+        assert_relative_eq!(0.875, number(2, 7));
+        assert_relative_eq!(0.0625, number(2, 8));
+        assert_relative_eq!(0.5625, number(2, 9));
+    }
+
+    #[test]
+    fn number_base_3() {
+        assert_relative_eq!(0.0, number(3, 0));
+        assert_relative_eq!(0.3333333333333333, number(3, 1));
+        assert_relative_eq!(0.6666666666666666, number(3, 2));
+        assert_relative_eq!(0.1111111111111111, number(3, 3));
+        assert_relative_eq!(0.4444444444444444, number(3, 4));
+        assert_relative_eq!(0.7777777777777777, number(3, 5));
+        assert_relative_eq!(0.2222222222222222, number(3, 6));
+        assert_relative_eq!(0.5555555555555555, number(3, 7));
+        assert_relative_eq!(0.8888888888888888, number(3, 8));
+        assert_relative_eq!(0.0370370370370370, number(3, 9));
+    }
+
+    #[test]
+    fn sequence_base_2() {
         let mut seq = Sequence::new(2);
         assert_relative_eq!(0.5, seq.next().unwrap());
         assert_relative_eq!(0.25, seq.next().unwrap());
@@ -197,7 +271,7 @@ mod tests {
     }
 
     #[test]
-    fn base_3() {
+    fn sequence_base_3() {
         let mut seq = Sequence::new(3);
         assert_relative_eq!(0.3333333333333333, seq.next().unwrap());
         assert_relative_eq!(0.6666666666666666, seq.next().unwrap());
@@ -211,33 +285,33 @@ mod tests {
     }
 
     #[test]
-    fn skip_base_2() {
+    fn sequence_skip_base_2() {
         let mut seq = Sequence::skip(2, 8);
         assert_relative_eq!(0.5625, seq.next().unwrap());
     }
 
     #[test]
-    fn skip_base_3() {
+    fn sequence_skip_base_3() {
         let mut seq = Sequence::skip(3, 8);
         assert_relative_eq!(0.0370370370370370, seq.next().unwrap());
     }
 
     #[test]
-    fn last() {
+    fn sequence_last() {
         let mut seq = Sequence::new(2);
         assert_relative_eq!(4.76837158203125e-07, seq.nth(1048575).unwrap());
         assert_eq!(None, seq.next());
     }
 
     #[test]
-    fn skip_last() {
+    fn sequence_skip_last() {
         let mut seq = Sequence::skip(2, 1048575);
         assert_relative_eq!(4.76837158203125e-07, seq.next().unwrap());
         assert_eq!(None, seq.next());
     }
 
     #[test]
-    fn iter() {
+    fn sequence_iter() {
         use std::vec::Vec;
 
         let seq = Sequence::new(2);
