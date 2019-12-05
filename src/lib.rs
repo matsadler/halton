@@ -37,12 +37,7 @@
 #![no_std]
 
 #[cfg(test)]
-#[macro_use]
 extern crate std;
-
-#[cfg(test)]
-#[macro_use]
-extern crate approx;
 
 const D: usize = 20;
 
@@ -78,13 +73,12 @@ const D: usize = 20;
 /// }
 /// ```
 #[inline]
-pub fn number(base: u8, index: usize) -> f64 {
-    let mut index = index;
+pub fn number(base: u8, mut index: usize) -> f64 {
+    let mut factor = 1.0;
     let mut result = 0.0;
-    let mut factor = 1.0 / f64::from(base);
     while index > 0 {
-        result += factor * (index % usize::from(base)) as f64;
         factor /= f64::from(base);
+        result += factor * (index % usize::from(base)) as f64;
         index /= usize::from(base);
     }
     result
@@ -127,14 +121,15 @@ pub fn number(base: u8, index: usize) -> f64 {
 /// use halton::Sequence;
 ///
 /// // use base 17, skip the first 20 entries
-/// let mut seq = Sequence::skip(17, 20);
+/// let mut seq = Sequence::new(17).skip(20);
 ///
 /// assert_eq!(Some(0.23875432525951557), seq.next());
 /// ```
+#[derive(Clone)]
 pub struct Sequence {
     b: u8,
-    d: [u8; D + 1],
-    r: [f64; D + 1],
+    d: [u8; D],
+    r: [f64; D],
 }
 
 impl Sequence {
@@ -150,68 +145,48 @@ impl Sequence {
     ///
     /// assert_eq!(Some(0.5), seq.next());
     /// ```
+    #[inline]
     pub fn new(base: u8) -> Self {
         Sequence {
             b: base,
-            d: [0; D + 1],
-            r: [0.0; D + 1],
+            d: [0; D],
+            r: [0.0; D],
         }
     }
 
-    /// Constructs a new `Sequence` for `base`, skipping `n` elements.
-    ///
-    /// The method used to skip elements when constructing the `Sequence` is
-    /// considerably faster than advancing the iterator to that point.
-    ///
-    /// # Examples
-    ///
-    /// Basic usage:
-    ///
-    /// ```
-    /// # use halton::Sequence;
-    /// let mut seq = Sequence::skip(2, 8);
-    ///
-    /// assert_eq!(Some(0.5625), seq.next());
-    /// ```
-    pub fn skip(base: u8, n: usize) -> Self {
-        let b = base;
-        let mut n0 = n;
-        let mut d = [0; D + 1];
-        let mut r = [0.0; D + 1];
+    fn pos(&self) -> Option<usize> {
+        self.d
+            .iter()
+            .zip(1..)
+            .map(|(v, i)| (*v as usize).checked_mul(i))
+            .try_fold(0usize, |acc, v| acc.checked_add(v?))
+    }
 
-        let mut last = 0;
-        while n0 >= usize::from(b) {
-            d[last] = n0 as u8 % b;
-            last += 1;
-            n0 /= usize::from(b);
-        }
-        d[last] = n0 as u8;
-        for i in (1..(D + 1)).rev() {
-            r[i - 1] = (f64::from(d[i]) + r[i]) / f64::from(b);
-        }
-        Sequence { b, d, r }
+    fn max(&self) -> Option<usize> {
+        checked_pow(self.b as usize, D).map(|v| v - 1)
+    }
+
+    fn remaining(&self) -> Option<usize> {
+        Some(self.max()? - self.pos()?)
     }
 }
 
 impl Iterator for Sequence {
     type Item = f64;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if self.d[D] != 0 {
-            return None;
-        }
-
         let mut l = 0;
 
-        self.d[0] += 1;
-        if self.d[0] == self.b {
-            loop {
+        self.d[l] += 1;
+        if self.d[l] == self.b {
+            while self.d[l] == self.b {
                 self.d[l] = 0;
                 l += 1;
+                if l == D {
+                    return None;
+                }
                 self.d[l] += 1;
-                if self.d[l] != self.b {
-                    break;
-                };
             }
             self.r[l - 1] = (f64::from(self.d[l]) + self.r[l]) / f64::from(self.b);
             for i in (1..l).rev() {
@@ -222,11 +197,100 @@ impl Iterator for Sequence {
             Some((f64::from(self.d[0]) + self.r[0]) / f64::from(self.b))
         }
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        if let Some(remaining) = self.remaining() {
+            (remaining, Some(remaining))
+        } else {
+            (0, None)
+        }
+    }
+
+    #[inline]
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        if let Some(remaining) = self.remaining() {
+            remaining
+        } else {
+            panic!("attempt to add with overflow")
+        }
+    }
+
+    #[inline]
+    fn last(mut self) -> Option<Self::Item>
+    where
+        Self: Sized,
+    {
+        if let Some(remaining) = self.remaining() {
+            self.nth(remaining - 1)
+        } else {
+            self.fold(None, |_, v| Some(v))
+        }
+    }
+
+    #[inline]
+    fn nth(&mut self, mut n: usize) -> Option<Self::Item> {
+        if n > 50 {
+            if let Some(mut n) = self.pos().and_then(|p| n.checked_add(p)) {
+                self.d.iter_mut().for_each(|v| *v = 0);
+                self.r.iter_mut().for_each(|v| *v = 0.0);
+                let mut last = 0;
+                while n >= usize::from(self.b) {
+                    self.d[last] = n as u8 % self.b;
+                    last += 1;
+                    n /= usize::from(self.b);
+                }
+                self.d[last] = n as u8;
+                for i in (1..D).rev() {
+                    self.r[i - 1] = (f64::from(self.d[i]) + self.r[i]) / f64::from(self.b);
+                }
+                return self.next()
+            }
+        }
+        for x in self {
+            if n == 0 {
+                return Some(x);
+            }
+            n -= 1;
+        }
+        None
+    }
+}
+
+impl ExactSizeIterator for Sequence {
+    #[inline]
+    fn len(&self) -> usize {
+        self.remaining().unwrap()
+    }
+}
+
+// copied from rust std, '*' replaced with checked_mul()
+pub fn checked_pow(mut base: usize, mut exp: usize) -> Option<usize> {
+    let mut acc = 1usize;
+
+    while exp > 1 {
+        if (exp & 1) == 1 {
+            acc = acc.checked_mul(base)?;
+        }
+        exp /= 2;
+        base = base.checked_mul(base)?;
+    }
+
+    if exp == 1 {
+        acc = acc.checked_mul(base)?;
+    }
+
+    Some(acc)
 }
 
 #[cfg(test)]
 mod tests {
     use super::{number, Sequence};
+    use approx::assert_relative_eq;
+    use std::vec;
 
     #[test]
     fn number_base_2() {
@@ -286,27 +350,39 @@ mod tests {
 
     #[test]
     fn sequence_skip_base_2() {
-        let mut seq = Sequence::skip(2, 8);
+        let mut seq = Sequence::new(2).skip(8);
         assert_relative_eq!(0.5625, seq.next().unwrap());
     }
 
     #[test]
     fn sequence_skip_base_3() {
-        let mut seq = Sequence::skip(3, 8);
+        let mut seq = Sequence::new(3).skip(8);
         assert_relative_eq!(0.0370370370370370, seq.next().unwrap());
     }
 
     #[test]
+    fn sequence_iteratate_to_last() {
+        let seq = Sequence::new(2);
+        assert_relative_eq!(0.9999990463256836, seq.fold(None, |_, x| Some(x)).unwrap());
+    }
+
+    #[test]
     fn sequence_last() {
+        let seq = Sequence::new(2);
+        assert_relative_eq!(0.9999990463256836, seq.last().unwrap());
+    }
+
+    #[test]
+    fn sequence_nth_last() {
         let mut seq = Sequence::new(2);
-        assert_relative_eq!(4.76837158203125e-07, seq.nth(1048575).unwrap());
+        assert_relative_eq!(0.9999990463256836, seq.nth(1048574).unwrap());
         assert_eq!(None, seq.next());
     }
 
     #[test]
     fn sequence_skip_last() {
-        let mut seq = Sequence::skip(2, 1048575);
-        assert_relative_eq!(4.76837158203125e-07, seq.next().unwrap());
+        let mut seq = Sequence::new(2).skip(1048574);
+        assert_relative_eq!(0.9999990463256836, seq.next().unwrap());
         assert_eq!(None, seq.next());
     }
 
@@ -316,5 +392,17 @@ mod tests {
 
         let seq = Sequence::new(2);
         assert_eq!(vec![0.5, 0.25, 0.75], seq.take(3).collect::<Vec<f64>>());
+    }
+
+    #[test]
+    fn sequence_count() {
+        let seq = Sequence::new(2);
+        assert_eq!(1048575, seq.count());
+    }
+
+    #[test]
+    fn sequence_size_hint() {
+        let seq = Sequence::new(2);
+        assert_eq!((1048575, Some(1048575)), seq.size_hint());
     }
 }

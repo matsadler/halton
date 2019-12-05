@@ -46,7 +46,7 @@ fn print_sequence(base: u8, skip: usize) -> Result<(), io::Error> {
     let stdout = io::stdout();
     let mut handle = stdout.lock();
 
-    for f in halton::Sequence::skip(base, skip) {
+    for f in halton::Sequence::new(base).skip(skip) {
         handle.write(f.to_string().as_bytes())?;
         handle.write(b"\n")?;
     }

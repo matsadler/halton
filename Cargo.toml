@@ -1,12 +1,18 @@
 [package]
 name = "halton"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Mat Sadler <mat@sourcetagsandcodes.com>"]
+edition = "2018"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/matsadler/halton"
 homepage = "https://github.com/matsadler/halton"
 documentation = "https://docs.rs/halton"
 description = "A module for generating Halton sequences"
+readme = "README.md"
+categories = ["algorithms", "no-std"]
+
+[badges]
+travis-ci = { repository = "matsadler/halton" }
 
 [dev-dependencies]
-approx = "0.1"
+approx = "0.3"
