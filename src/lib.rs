@@ -163,7 +163,7 @@ impl Sequence {
     }
 
     fn max(&self) -> Option<usize> {
-        checked_pow(self.b as usize, D).map(|v| v - 1)
+        _checked_pow(self.b as usize, D).map(|v| v - 1)
     }
 
     fn remaining(&self) -> Option<usize> {
@@ -267,8 +267,14 @@ impl ExactSizeIterator for Sequence {
     }
 }
 
+#[deprecated(since = "0.2.1", note = "checked_pow was made public accidently and will be removed in 0.3")]
+#[doc(hidden)]
+pub fn checked_pow(base: usize, exp: usize) -> Option<usize> {
+    _checked_pow(base, exp)
+}
+
 // copied from rust std, '*' replaced with checked_mul()
-pub fn checked_pow(mut base: usize, mut exp: usize) -> Option<usize> {
+fn _checked_pow(mut base: usize, mut exp: usize) -> Option<usize> {
     let mut acc = 1usize;
 
     while exp > 1 {

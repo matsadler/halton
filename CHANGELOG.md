@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.1] - 2019-12-05
+### Changed
+- Accidentally public helper function hidden in docs and marked deprecated
+
 ## [0.2.0] - 2019-12-04
 ### Added
 - `#![no_std]` attribute to build without the standard library
