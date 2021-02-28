@@ -42,7 +42,7 @@ fn main() {
     }
 }
 
-fn print_sequence(base: u8, skip: usize) -> Result<(), io::Error> {
+fn print_sequence(base: u16, skip: usize) -> Result<(), io::Error> {
     let stdout = io::stdout();
     let mut handle = stdout.lock();
 

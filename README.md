@@ -1,6 +1,6 @@
 # halton
 
-[![Build](https://travis-ci.org/matsadler/halton.svg?branch=master)](https://travis-ci.org/matsadler/halton)
+[![Build](https://github.com/matsadler/halton/actions/workflows/test.yml/badge.svg)](https://github.com/matsadler/halton/actions/workflows/test.yml)
 [![Version](https://img.shields.io/crates/v/halton.svg)](https://crates.io/crates/halton)
 [![Docs](https://docs.rs/halton/badge.svg)](https://docs.rs/halton)
 

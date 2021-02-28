@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- new `halton::GenericSequence`
+
+### Changed
+- minimum Rust version now 1.51
+- `halton::Sequence` is now a type alias for `halton::GenericSequence<u16, f64, 20>`
+- `base` argument to `halton::number` is now a `u16` (was `u8`)
+
+### Removed
+- Accidentally public helper function
+- `halton::Sequence`/`GenericSequence` no longer implement `ExactSizeIterator`
+
 ## [0.2.1] - 2019-12-05
 ### Changed
 - Accidentally public helper function hidden in docs and marked deprecated
